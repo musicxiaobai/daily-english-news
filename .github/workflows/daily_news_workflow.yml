@@ -26,4 +26,4 @@ jobs:
         env:
           DINGTALK_WEBHOOK: ${{ secrets.DINGTALK_WEBHOOK }}
           DINGTALK_SECRET: ${{ secrets.DINGTALK_SECRET }}
-        run: python 新闻推送脚本.py
+        run: python news_dingtalk_pusher.py
