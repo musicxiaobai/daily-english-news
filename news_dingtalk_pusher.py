@@ -7,7 +7,7 @@ import base64
 import os
 
 def get_bbc_news(rss_url):
-    """从BBC RSS Feed获取新闻"""
+    """从China Daily获取新闻"""
     try:
         feed = feedparser.parse(rss_url)
         if feed.bozo != 0:
@@ -33,7 +33,7 @@ def send_to_dingtalk(webhook, secret, news_items):
         return False
         
     # 构建消息内容
-    message = "📰 今日BBC英语新闻:\n\n"
+    message = "📰 今日China Daily:\n\n"
     for i, item in enumerate(news_items, 1):
         message += f"{i}. [{item['title']}]({item['link']})\n\n"
     
@@ -71,7 +71,7 @@ def send_to_dingtalk(webhook, secret, news_items):
 
 def main():
     # 从环境变量获取配置
-    rss_url = "https://www.bbc.com/news/rss.xml"  # BBC新闻RSS Feed
+    rss_url = "http://www.chinadaily.com.cn/rss/world_rss.xml"  # China Daily RSS Feed
     webhook = os.getenv("DINGTALK_WEBHOOK")
     secret = os.getenv("DINGTALK_SECRET")
     
