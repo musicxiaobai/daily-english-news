@@ -1,4 +1,4 @@
-# daily-english-news README
+![da1c6e4f6eca83b26db47c0bbda9b8d7](https://github.com/user-attachments/assets/697fa38f-cea5-4cb0-a375-6369fff5f514)# daily-english-news README
 
 ## 项目概述
 本项目是一个自动化英语新闻推送工具，通过GitHub Actions定时任务从**国内可用的英文新闻源**获取最新资讯，并通过钉钉机器人推送到指定群组。解决了国内用户无法直接访问部分海外新闻源的问题，同时提供地道的英语学习材料。
@@ -200,3 +200,6 @@ A: 推荐：
 - 新闻源数据来自各媒体公开RSS Feed
 - 定时任务基于GitHub Actions实现
 - 消息推送使用钉钉开放平台API
+
+- 支持方式：
+- ![da1c6e4f6eca83b26db47c0bbda9b8d7](https://github.com/user-attachments/assets/678644c8-5c12-41da-9e05-67365a39db6a)
