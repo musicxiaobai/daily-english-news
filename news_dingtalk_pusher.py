@@ -71,7 +71,8 @@ def send_to_dingtalk(webhook, secret, news_items):
 
 def main():
     # 从环境变量获取配置
-    rss_url = "http://www.chinadaily.com.cn/rss/world_rss.xml"  # China Daily RSS Feed
+    rss_url = "http://www.chinadaily.com.cn/rss/world_rss.xml",
+    "https://news.cgtn.com/rss/news/rss-en.xml"  # China Daily RSS Feed
     webhook = os.getenv("DINGTALK_WEBHOOK")
     secret = os.getenv("DINGTALK_SECRET")
     
