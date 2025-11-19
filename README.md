@@ -202,4 +202,5 @@ A: 推荐：
 - 消息推送使用钉钉开放平台API
 
 - 支持方式：
-- ![da1c6e4f6eca83b26db47c0bbda9b8d7](https://github.com/user-attachments/assets/678644c8-5c12-41da-9e05-67365a39db6a)
+- <img width="522" height="700" alt="image" src="https://github.com/user-attachments/assets/7ba879c8-1c67-4877-b100-7a6ccd6a627a" />
+
