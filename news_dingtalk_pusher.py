@@ -8,7 +8,7 @@ import feedparser
 from datetime import datetime
 
 # 配置国内新闻源（已验证可用）
-RSS_URL = "https://www.chinadaily.com.cn/rss/world_rss.xml"  # China Daily国际新闻
+RSS_URL = "https://www.i21st.cn/rss/","https://archive.shine.cn/siteinfo/rss.aspx" ,"http://www.chinadaily.com.cn/rss/world_rss.xml" # China Daily国际新闻
 MAX_NEWS_ITEMS = 5  # 最多推送新闻数量
 DINGTALK_KEYWORD = "新闻"  # 确保包含钉钉机器人关键词
 
