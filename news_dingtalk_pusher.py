@@ -18,8 +18,8 @@ MAX_NEWS_ITEMS = 5  # 最大新闻数量
 
 # 2. 存档配置
 ARCHIVE_DIR = "news_archive"  # 存档目录名
-GITHUB_USER = os.getenv("GITHUB_USER", "musicxiaobai")  # GitHub用户名
-GITHUB_REPO = os.getenv("GITHUB_REPO", "daily-english-news")  # 仓库名
+REPO_OWNER = os.getenv("REPO_OWNER", "musicxiaobai")  # 替换GITHUB_USER
+REPO_NAME = os.getenv("REPO_NAME", "daily-english-news")  # 替换GITHUB_REPO
 
 # 3. 钉钉配置
 DINGTALK_KEYWORD = "BBC新闻"  # 钉钉消息关键词（需与机器人安全设置匹配）
@@ -43,7 +43,7 @@ def get_bbc_news():
         
         # 生成GitHub存档链接
         today = datetime.now().strftime("%Y-%m-%d")
-        archive_url = f"https://github.com/{GITHUB_USER}/{GITHUB_REPO}/blob/main/{ARCHIVE_DIR}/{today}.md"
+        archive_url = f"https://github.com/{REPO_OWNER}/{REPO_NAME}/blob/main/{ARCHIVE_DIR}/{today}.md"
         
         # 生成Markdown内容
         md_content = f"# {DINGTALK_KEYWORD} ({today})\n\n"
