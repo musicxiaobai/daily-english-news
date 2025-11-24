@@ -6,89 +6,118 @@ import base64
 import requests
 import feedparser
 from datetime import datetime
+from dotenv import load_dotenv
 
-# 配置国内新闻源（已验证可用）
-RSS_URL = "http://www.i21st.cn/rss/story.xml" # Daily国际新闻
-MAX_NEWS_ITEMS = 5  # 最多推送新闻数量
-DINGTALK_KEYWORD = "新闻"  # 确保包含钉钉机器人关键词
+# 加载环境变量（本地开发用）
+load_dotenv()
 
-def get_news():
-    """获取并解析RSS新闻"""
+# 配置
+BBC_RSS_URL = "https://feeds.bbci.co.uk/news/rss.xml"  # BBC国际新闻RSS
+ARCHIVE_DIR = "news_archive"  # 存档目录名
+MAX_NEWS_ITEMS = 5  # 最大新闻数量
+DINGTALK_KEYWORD = "BBC新闻"  # 钉钉消息关键词
+
+# 创建存档目录
+os.makedirs(ARCHIVE_DIR, exist_ok=True)
+
+def get_bbc_news():
+    """从BBC RSS获取新闻"""
     try:
-        # 添加浏览器请求头，避免被拦截
-        headers = {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.0.0.0 Safari/537.36"
-        }
+        # 使用GitHub Actions海外IP直接访问
+        response = requests.get(BBC_RSS_URL, timeout=15)
+        response.encoding = "utf-8"
         
-        # 发送请求并处理编码
-        response = requests.get(RSS_URL, headers=headers, timeout=15)
-        response.encoding = "utf-8"  # 强制UTF-8编码，避免中文乱码
-        
-        # 解析RSS
         feed = feedparser.parse(response.text)
         if not feed.entries:
-            return f"⚠️ 未获取到新闻内容，请检查RSS链接: {RSS_URL}"
+            return None, "未获取到BBC新闻内容"
         
-        # 提取新闻
+        # 解析新闻条目
         news_list = []
         for i, entry in enumerate(feed.entries[:MAX_NEWS_ITEMS], 1):
-            title = entry.get("title", "无标题")
-            link = entry.get("link", "#")
-            # 处理不同新闻源的发布时间格式差异
-            pub_date = entry.get("published", entry.get("pubDate", "未知时间"))
-            
-            # 确保包含关键词
-            if DINGTALK_KEYWORD not in title:
-                title = f"{DINGTALK_KEYWORD}：{title}"
-                
-            news_list.append(f"{i}. [{title}]({link})\n🕒 {pub_date}")
+            news_list.append({
+                "title": entry.title,
+                "link": entry.link,
+                "published": entry.published,
+                "summary": entry.summary
+            })
         
-        return "\n\n".join(news_list)
+        # 生成Markdown内容
+        md_content = f"# {DINGTALK_KEYWORD} ({datetime.now().strftime('%Y-%m-%d')})\n\n"
+        for item in news_list:
+            md_content += f"## {item['title']}\n\n"
+            md_content += f"{item['summary']}\n\n"
+            md_content += f"[阅读原文]({item['link']}) | 发布时间：{item['published']}\n\n---\n\n"
+        
+        return md_content, None
         
     except Exception as e:
-        return f"❌ 新闻获取失败: {str(e)}"
+        return None, f"获取失败: {str(e)}"
+
+def save_news_to_github(content):
+    """保存新闻到GitHub仓库"""
+    today = datetime.now().strftime("%Y-%m-%d")
+    file_path = os.path.join(ARCHIVE_DIR, f"{today}.md")
+    
+    # 检查文件是否已存在且内容相同
+    if os.path.exists(file_path):
+        with open(file_path, "r", encoding="utf-8") as f:
+            if f.read() == content:
+                return "unchanged"  # 内容未变化
+    
+    # 保存新内容
+    with open(file_path, "w", encoding="utf-8") as f:
+        f.write(content)
+    return "updated"  # 内容已更新
 
 def send_to_dingtalk(content):
-    """发送消息到钉钉"""
+    """发送到钉钉机器人"""
     webhook = os.getenv("DINGTALK_WEBHOOK")
     secret = os.getenv("DINGTALK_SECRET")
     
     if not webhook or not secret:
-        return "⚠️ 请设置DINGTALK_WEBHOOK和DINGTALK_SECRET环境变量"
+        return "环境变量未配置"
     
-    # 计算钉钉签名
+    # 计算签名
     timestamp = str(round(time.time() * 1000))
     secret_enc = secret.encode("utf-8")
     string_to_sign = f"{timestamp}\n{secret}".encode("utf-8")
-    hmac_code = hmac.new(secret_enc, string_to_sign, digestmod=hashlib.sha256).digest()
-    sign = base64.b64encode(hmac_code).decode("utf-8")
+    sign = base64.b64encode(hmac.new(secret_enc, string_to_sign, hashlib.sha256).digest()).decode()
     
-    # 构建请求
-    url = f"{webhook}&timestamp={timestamp}&sign={sign}"
-    headers = {"Content-Type": "application/json;charset=utf-8"}
+    # 发送请求
+    headers = {"Content-Type": "application/json"}
     data = {
         "msgtype": "markdown",
         "markdown": {
-            "title": f"{datetime.now().strftime('%Y-%m-%d')} {DINGTALK_KEYWORD}推送",
-            "text": content
+            "title": f"{DINGTALK_KEYWORD} {datetime.now().strftime('%Y-%m-%d')}",
+            "text": content[:3000]  # 钉钉消息长度限制
         }
     }
     
     try:
-        response = requests.post(url, json=data, headers=headers, timeout=10)
-        result = response.json()
-        if result.get("errcode") == 0:
-            return "✅ 消息推送成功"
-        else:
-            return f"❌ 推送失败: {result.get('errmsg')}"
+        response = requests.post(
+            f"{webhook}&timestamp={timestamp}&sign={sign}",
+            json=data,
+            headers=headers,
+            timeout=10
+        )
+        return f"推送成功: {response.json()}"
     except Exception as e:
-        return f"❌ 请求异常: {str(e)}"
+        return f"推送失败: {str(e)}"
 
 if __name__ == "__main__":
-    # 执行流程
-    news_content = get_news()
-    print(f"新闻内容:\n{news_content}")
+    # 主流程
+    news_content, error = get_bbc_news()
+    if error:
+        print(f"新闻获取错误: {error}")
+        send_to_dingtalk(f"⚠️ {error}")
+        exit(1)
     
-    # 添加推送结果到内容
-    full_content = f"📅 {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n{news_content}\n\n---\n系统状态: {send_to_dingtalk(news_content)}"
-    print(full_content)
+    # 存档新闻
+    save_result = save_news_to_github(news_content)
+    if save_result == "unchanged":
+        print("新闻内容未更新，无需推送")
+        exit(0)
+    
+    # 推送消息
+    send_result = send_to_dingtalk(news_content)
+    print(f"推送结果: {send_result}")
