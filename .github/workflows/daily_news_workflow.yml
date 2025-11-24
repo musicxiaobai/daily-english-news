@@ -1,29 +1,40 @@
-name: Daily English News Push
+name: BBC News Auto-Archive & Push
 
 on:
   schedule:
-    - cron: '0 0 * * *'  # UTC时间每天0点，对应北京时间8点
+    - cron: '0 0 * * *'  # UTC时间0点（北京时间8点）每日执行
   workflow_dispatch:  # 允许手动触发
 
 jobs:
-  send_news:
+  news_processing:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          persist-credentials: true  # 保留凭据用于提交文件
 
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.9'
+          python-version: "3.10"
+          cache: "pip"
 
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install feedparser requests
+          pip install feedparser requests python-dotenv
 
-      - name: Run news push script
+      - name: Run news crawler
         env:
           DINGTALK_WEBHOOK: ${{ secrets.DINGTALK_WEBHOOK }}
           DINGTALK_SECRET: ${{ secrets.DINGTALK_SECRET }}
         run: python news_dingtalk_pusher.py
+
+      - name: Commit archive files
+        run: |
+          git config --global user.name "News Archive Bot"
+          git config --global user.email "bot@example.com"
+          git add news_archive/
+          git commit -m "Add news archive for $(date +'%Y-%m-%d')" || echo "No changes to commit"
+          git push origin main || echo "Push failed (可能是内容未更新)"
