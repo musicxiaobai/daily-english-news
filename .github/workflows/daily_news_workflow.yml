@@ -2,37 +2,57 @@ name: BBC News Auto-Archive & Push
 
 on:
   schedule:
-    - cron: '0 0 * * *'
+    - cron: '0 0 * * *'  # UTC时间0点（北京时间8点）
   workflow_dispatch:
 
 jobs:
   news_processing:
     runs-on: ubuntu-latest
     permissions:
-      contents: write  # 关键：授予工作流写仓库权限
+      contents: write  # 授予写权限
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # 获取完整历史，避免提交冲突
+          fetch-depth: 0  # 获取完整历史
 
-      # ...（其他步骤不变，重点修改提交步骤）
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install feedparser requests python-dotenv
+
+      - name: Run news crawler
+        env:
+          DINGTALK_WEBHOOK: ${{ secrets.DINGTALK_WEBHOOK }}
+          DINGTALK_SECRET: ${{ secrets.DINGTALK_SECRET }}
+          REPO_OWNER: ${{ secrets.REPO_OWNER }}
+          REPO_NAME: ${{ secrets.REPO_NAME }}
+        run: python news_dingtalk_pusher.py
 
       - name: Commit archive files
         run: |
           git config --global user.name "GitHub Actions"
           git config --global user.email "actions@github.com"
-          # 验证存档文件是否生成
-          echo "当前目录文件:"
+          
+          # 调试信息：显示工作目录和存档目录内容
+          echo "=== 当前工作目录 ==="
+          pwd
           ls -la
-          echo "存档目录文件:"
+          
+          echo "=== 存档目录内容 ==="
           ls -la news_archive/ || echo "存档目录不存在"
           
-          # 强制添加所有存档文件
-          git add news_archive/  # 添加整个目录，确保不遗漏
+          # 添加存档文件
+          git add news_archive/  # 添加整个目录
           
-          # 提交（处理无变更情况）
-          git commit -m "Add news archive $(date +%Y-%m-%d)" || echo "No changes"
+          # 提交
+          git commit -m "Add news archive $(date +'%Y-%m-%d')" || echo "No changes to commit"
           
-          # 安全推送（避免强制覆盖）
+          # 推送
           git push origin main
